@@ -94,5 +94,6 @@ def main():
     print("- For respiratory symptoms: avoid smoking, check for allergies/asthma triggers.")
     print("- Seek professional help for moderate/high mental health scores.")
 
-if _name_ == "_main_":
+if __name__ == "_main_":
     main()
+
