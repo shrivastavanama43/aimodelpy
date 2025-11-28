@@ -1,5 +1,3 @@
-# AI Health Akinator style Q&A in Python (console app)
-
 QUESTIONS = {
     "physical": [
         {"id": "polyuria", "text": "Do you feel excessive thirst or urination? (yes/no)"},
@@ -18,6 +16,7 @@ QUESTIONS = {
     ]
 }
 
+
 def mock_infer(domain, answers):
     score = 0
     if domain == "physical":
@@ -26,11 +25,18 @@ def mock_infer(domain, answers):
         if answers.get("bp_headache") == "yes": score += 2
         if answers.get("wheezing") == "yes": score += 3
         if answers.get("smoking") == "yes": score += 2
-        age = int(answers.get("age", "0")) if answers.get("age", "0").isdigit() else 0
+
+        # age already parsed to int in main
+        age = answers.get("age", 0) if isinstance(answers.get("age", 0), int) else 0
         if age > 45: score += 1
 
-        diabetesScore = (0.6 if answers.get("polyuria") == "yes" else 0) + (0.3 if answers.get("fatigue") == "yes" else 0) + (0.1 if age > 45 else 0)
-        hypertensionScore = (0.6 if answers.get("bp_headache") == "yes" else 0) + (0.2 if answers.get("smoking") == "yes" else 0)
+        diabetesScore = (0.6 if answers.get("polyuria") == "yes" else 0) + \
+                        (0.3 if answers.get("fatigue") == "yes" else 0) + \
+                        (0.1 if age > 45 else 0)
+
+        hypertensionScore = (0.6 if answers.get("bp_headache") == "yes" else 0) + \
+                            (0.2 if answers.get("smoking") == "yes" else 0)
+
         asthmaScore = (0.8 if answers.get("wheezing") == "yes" else 0)
 
         return {
@@ -49,9 +55,12 @@ def mock_infer(domain, answers):
         if answers.get("concentrate") == "yes": score += 2
         if len(answers.get("stressors", "").strip()) > 10: score += 1
 
-        depression = (0.7 if answers.get("mood_low") == "yes" else 0) + (0.2 if answers.get("sleep_change") == "yes" else 0)
-        anxiety = (0.7 if answers.get("worry") == "yes" else 0) + (0.2 if answers.get("concentrate") == "yes" else 0)
-        stress = (0.6 if len(answers.get("stressors", "")) > 10 else 0) + (0.2 if answers.get("worry") == "yes" else 0)
+        depression = (0.7 if answers.get("mood_low") == "yes" else 0) + \
+                     (0.2 if answers.get("sleep_change") == "yes" else 0)
+        anxiety = (0.7 if answers.get("worry") == "yes" else 0) + \
+                  (0.2 if answers.get("concentrate") == "yes" else 0)
+        stress = (0.6 if len(answers.get("stressors", "")) > 10 else 0) + \
+                 (0.2 if answers.get("worry") == "yes" else 0)
 
         return {
             "overall": min(100, score * 12),
@@ -62,6 +71,32 @@ def mock_infer(domain, answers):
             ]
         }
 
+
+def ask_yes_no(prompt):
+    """Prompt until user enters yes/no/maybe."""
+    while True:
+        a = input(prompt + " ").strip().lower()
+        if a in ("yes", "no", "maybe"):
+            return a
+        print("Please answer with 'yes', 'no', or 'maybe'.")
+
+
+def ask_age(prompt):
+    """Prompt until user enters a valid non-negative integer age (or 0 if unknown)."""
+    while True:
+        a = input(prompt + " ").strip()
+        if a == "":
+            return 0
+        try:
+            val = int(a)
+            if val < 0:
+                print("Please enter a non-negative age.")
+                continue
+            return val
+        except ValueError:
+            print("Please type a valid number for age (e.g. 18).")
+
+
 def main():
     print("Welcome to AI Health Akinator (Console Version)")
     domain = ""
@@ -70,13 +105,17 @@ def main():
 
     answers = {}
     for q in QUESTIONS[domain]:
-        ans = input(q["text"] + " ").strip().lower()
-        # For yes/no questions validate entries
-        if 'yesno' in q.get('type', '') or "yes/no" in q["text"]:
-            while ans not in ['yes', 'no', 'maybe'] and q["id"] != "age":
-                print("Please answer with 'yes', 'no', or 'maybe'.")
-                ans = input(q["text"] + " ").strip().lower()
-        answers[q["id"]] = ans
+        qid = q["id"]
+        text = q["text"]
+
+        # detect yes/no by explicit marker
+        if "(yes/no)" in text.lower():
+            answers[qid] = ask_yes_no(text)
+        elif qid == "age":
+            answers[qid] = ask_age(text)
+        else:
+            # free text (e.g., stressors)
+            answers[qid] = input(text + " ").strip()
 
     result = mock_infer(domain, answers)
 
@@ -94,6 +133,6 @@ def main():
     print("- For respiratory symptoms: avoid smoking, check for allergies/asthma triggers.")
     print("- Seek professional help for moderate/high mental health scores.")
 
-if __name__ == "_main_":
-    main()
 
+if __name__ == "__main__":
+    main()
